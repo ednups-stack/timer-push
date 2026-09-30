@@ -3,19 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🍉 西瓜多階段計時推播</title>
+  <title>🍉 西瓜時鐘多階段計時推播</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; line-height: 1.5; background-color: #fafafa; color: #333; }
-    .watermelon-box { text-align: center; margin: 15px 0; padding: 15px; background: #fff0f3; border-radius: 16px; border: 2px dashed #ff4d6d; }
-    .watermelon-icon { font-size: 64px; display: inline-block; animation: pulse 2s infinite ease-in-out; }
-    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1) rotate(5deg); } 100% { transform: scale(1); } }
-    
-    /* ⏱️ 畫面倒數計時器樣式 */
-    .timer-display { background: #222; color: #00ff66; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; font-family: monospace; display: none; }
-    .timer-time { font-size: 36px; font-weight: bold; }
-    .timer-status { font-size: 14px; color: #aaa; margin-top: 5px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 20px;
+      max-width: 480px;
+      margin: 0 auto;
+      background-color: #fafafa;
+      color: #333;
+    }
 
+    /* 🍉 西瓜時鐘視覺 */
+    .watermelon-clock-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 15px 0;
+    }
+    .watermelon-clock {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ff4d6d 60%, #3a5a40 62%, #2d6a4f 100%);
+      border: 4px solid #1b4332;
+      position: relative;
+      box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+    }
+    .seed {
+      position: absolute;
+      width: 6px;
+      height: 10px;
+      background: #2b2b2b;
+      border-radius: 50% 50% 30% 30%;
+    }
+    .seed-1 { top: 20px; left: 77px; }
+    .seed-2 { bottom: 20px; left: 77px; }
+    .seed-3 { top: 75px; left: 20px; transform: rotate(90deg); }
+    .seed-4 { top: 75px; right: 20px; transform: rotate(90deg); }
+
+    .clock-center {
+      width: 12px;
+      height: 12px;
+      background: #2b2b2b;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+    }
+    .hand {
+      position: absolute;
+      bottom: 50%;
+      left: 50%;
+      transform-origin: bottom center;
+      border-radius: 4px;
+    }
+    .hour-hand { width: 4px; height: 35px; background: #2b2b2b; margin-left: -2px; }
+    .minute-hand { width: 3px; height: 50px; background: #4a5568; margin-left: -1.5px; }
+    .second-hand { width: 2px; height: 60px; background: #d90429; margin-left: -1px; z-index: 8; }
+
+    /* ⏱️️ 畫面白板數字倒數 */
+    .timer-display {
+      background: #222;
+      color: #00ff66;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-family: monospace;
+      display: none;
+    }
+    .timer-time { font-size: 32px; font-weight: bold; }
+    .timer-status { font-size: 13px; color: #aaa; margin-top: 3px; }
+
+    /* 卡片與按鈕 */
     .stage-card { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stage-label { font-weight: bold; color: #2d6a4f; }
     .stage-input-group { display: flex; align-items: center; gap: 8px; }
@@ -29,12 +93,22 @@
 </head>
 <body>
 
-  <div class="watermelon-box">
-    <div class="watermelon-icon">🍉</div>
-    <h2 style="margin: 5px 0 0 0; color: #c9184a;">西瓜多階段計時器</h2>
+  <!-- 🍉 西瓜時鐘 UI -->
+  <div class="watermelon-clock-container">
+    <div class="watermelon-clock">
+      <div class="seed seed-1"></div>
+      <div class="seed seed-2"></div>
+      <div class="seed seed-3"></div>
+      <div class="seed seed-4"></div>
+      <div class="clock-center"></div>
+      <div id="hour-hand" class="hand hour-hand"></div>
+      <div id="minute-hand" class="hand minute-hand"></div>
+      <div id="second-hand" class="hand second-hand"></div>
+    </div>
+    <h3 style="margin: 10px 0 0 0; color: #c9184a;">西瓜時鐘計時器</h3>
   </div>
 
-  <!-- 倒數計時顯示區塊 -->
+  <!-- 數字倒數區塊 -->
   <div id="timer-box" class="timer-display">
     <div id="timer-status" class="timer-status">準備就緒</div>
     <div id="timer-time" class="timer-time">00:00</div>
@@ -58,11 +132,29 @@
   <script>
     const VAPID_PUBLIC_KEY = 'BC59SnWYq7iGTi7tb1ify3lvkY9ji742Dt9vCEsftJqyNhlPFPamGQtKtH8OSwGSsPLMzCGPvbiNChYkZAz7Z6Q';
     
-    // ⚠️ 請務必替換為你真實部署的 GAS 網址！
+    // ⚠️ 貼上你部署出來的真實 GAS 網址
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCMIQIdZzOa1q4knFt2yaehUrT6iMAzdDEhermdx20ELkklZfMBT4CYgD6-fqrpUM2kQ/exec';
 
     let pushSubscription = null;
     let countdownInterval = null;
+
+    // 西瓜時鐘秒針運轉
+    function updateClockHands() {
+      const now = new Date();
+      const seconds = now.getSeconds();
+      const minutes = now.getMinutes();
+      const hours = now.getHours();
+
+      const secondDeg = (seconds / 60) * 360;
+      const minuteDeg = ((minutes + seconds / 60) / 60) * 360;
+      const hourDeg = ((hours % 12 + minutes / 60) / 12) * 360;
+
+      document.getElementById('second-hand').style.transform = `rotate(${secondDeg}deg)`;
+      document.getElementById('minute-hand').style.transform = `rotate(${minuteDeg}deg)`;
+      document.getElementById('hour-hand').style.transform = `rotate(${hourDeg}deg)`;
+    }
+    setInterval(updateClockHands, 1000);
+    updateClockHands();
 
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       navigator.serviceWorker.register('sw.js').then(reg => {
@@ -77,6 +169,7 @@
       return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
     }
 
+    // 1. 允許通知權限（含本地震動測試）
     document.getElementById('enable-push').addEventListener('click', async () => {
       try {
         const reg = await navigator.serviceWorker.ready;
@@ -85,13 +178,21 @@
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
         pushSubscription = sub;
+
+        // 本地立即發送測試卡片與震動
+        reg.showNotification('🍉 測試通知成功！', {
+          body: '若看到這張卡片且有震動，代表權限設定正確。',
+          vibrate: [400, 200, 400]
+        });
+
         alert('✅ 推播權限設定成功！');
       } catch (err) {
-        alert('❌ 訂閱失敗，請確保是從「主畫面 PWA」開啟');
+        alert('❌ 訂閱失敗，請確保從「主畫面 PWA」開啟且權限未被封鎖');
         console.error(err);
       }
     });
 
+    // 2. 新增與刪除階段
     document.getElementById('add-stage').addEventListener('click', () => {
       const container = document.getElementById('stages-container');
       const div = document.createElement('div');
@@ -119,7 +220,7 @@
       });
     }
 
-    // 前端即時畫面倒數邏輯
+    // 3. 前端畫面白板倒數
     function startLocalCountdown(stages) {
       if (countdownInterval) clearInterval(countdownInterval);
       
@@ -159,6 +260,7 @@
       }, 1000);
     }
 
+    // 4. 開始排程發送
     document.getElementById('start-btn').addEventListener('click', async () => {
       if (!pushSubscription) {
         alert('請先點擊「允許通知權限」！');
@@ -179,11 +281,8 @@
 
       try {
         await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData });
-        
-        // 啟動前端畫面倒數動畫
         startLocalCountdown(stages);
-        
-        alert('🍉 計時已排定！畫面上將顯示倒數，時間到後端也會跳出推播與震動。');
+        alert('🍉 排程成功！倒數計時已開始，時間到後端會發送推播與震動。');
       } catch (err) {
         alert('❌ 排程失敗：' + err.message);
       }
