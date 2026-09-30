@@ -7,29 +7,24 @@
   <link rel="manifest" href="manifest.json">
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; line-height: 1.5; background-color: #fafafa; color: #333; }
-    
-    /* 🍉 西瓜視覺動畫區塊 */
     .watermelon-box { text-align: center; margin: 15px 0; padding: 15px; background: #fff0f3; border-radius: 16px; border: 2px dashed #ff4d6d; }
     .watermelon-icon { font-size: 64px; display: inline-block; animation: pulse 2s infinite ease-in-out; }
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1) rotate(5deg); }
-      100% { transform: scale(1); }
-    }
+    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1) rotate(5deg); } 100% { transform: scale(1); } }
     
-    /* 卡片與表單樣式 */
+    /* ⏱️ 畫面倒數計時器樣式 */
+    .timer-display { background: #222; color: #00ff66; padding: 15px; border-radius: 12px; text-align: center; margin-bottom: 15px; font-family: monospace; display: none; }
+    .timer-time { font-size: 36px; font-weight: bold; }
+    .timer-status { font-size: 14px; color: #aaa; margin-top: 5px; }
+
     .stage-card { display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 12px 15px; border-radius: 10px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stage-label { font-weight: bold; color: #2d6a4f; }
     .stage-input-group { display: flex; align-items: center; gap: 8px; }
     input[type="number"] { width: 65px; padding: 8px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
-    
-    /* 按鈕樣式 */
     button { padding: 12px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
     .btn-primary { background: #007aff; color: white; width: 100%; margin-bottom: 15px; }
     .btn-add { background: #d8f3dc; color: #1b4332; width: 100%; margin-bottom: 15px; border: 1px solid #b7e4c7; }
     .btn-success { background: #ff4d6d; color: white; width: 100%; font-size: 18px; box-shadow: 0 4px 10px rgba(255, 77, 109, 0.3); }
     .btn-delete { background: #ffccd5; color: #c9184a; padding: 6px 10px; font-size: 14px; border-radius: 6px; }
-    .btn-delete:hover { background: #ffb3c1; }
   </style>
 </head>
 <body>
@@ -39,35 +34,19 @@
     <h2 style="margin: 5px 0 0 0; color: #c9184a;">西瓜多階段計時器</h2>
   </div>
 
+  <!-- 倒數計時顯示區塊 -->
+  <div id="timer-box" class="timer-display">
+    <div id="timer-status" class="timer-status">準備就緒</div>
+    <div id="timer-time" class="timer-time">00:00</div>
+  </div>
+
   <button id="enable-push" class="btn-primary">1. 允許通知權限</button>
 
   <div id="stages-container">
-    <!-- 預設提供 4 個階段，右側皆有刪除按鈕 -->
     <div class="stage-card">
       <span class="stage-label">階段 1</span>
       <div class="stage-input-group">
-        <input type="number" class="stage-min" value="6" step="any" min="0.01"> 分鐘
-        <button class="btn-delete" onclick="removeStage(this)">刪除</button>
-      </div>
-    </div>
-    <div class="stage-card">
-      <span class="stage-label">階段 2</span>
-      <div class="stage-input-group">
-        <input type="number" class="stage-min" value="7" step="any" min="0.01"> 分鐘
-        <button class="btn-delete" onclick="removeStage(this)">刪除</button>
-      </div>
-    </div>
-    <div class="stage-card">
-      <span class="stage-label">階段 3</span>
-      <div class="stage-input-group">
-        <input type="number" class="stage-min" value="8" step="any" min="0.01"> 分鐘
-        <button class="btn-delete" onclick="removeStage(this)">刪除</button>
-      </div>
-    </div>
-    <div class="stage-card">
-      <span class="stage-label">階段 4</span>
-      <div class="stage-input-group">
-        <input type="number" class="stage-min" value="9" step="any" min="0.01"> 分鐘
+        <input type="number" class="stage-min" value="1" step="any" min="0.01"> 分鐘
         <button class="btn-delete" onclick="removeStage(this)">刪除</button>
       </div>
     </div>
@@ -77,13 +56,14 @@
   <button id="start-btn" class="btn-success">🚀 開始排程計時</button>
 
   <script>
-    // ⚠️ 請確保帶入你產生的 VAPID Public Key 與 GAS URL
     const VAPID_PUBLIC_KEY = 'BC59SnWYq7iGTi7tb1ify3lvkY9ji742Dt9vCEsftJqyNhlPFPamGQtKtH8OSwGSsPLMzCGPvbiNChYkZAz7Z6Q';
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwCMIQIdZzOa1q4knFt2yaehUrT6iMAzdDEhermdx20ELkklZfMBT4CYgD6-fqrpUM2kQ/exec'; // 請替換為你個人 Gmail 的 GAS 網址
+    
+    // ⚠️ 請務必替換為你真實部署的 GAS 網址！
+    const GAS_URL = 'https://script.google.com/macros/s/你的真實GAS網址碼/exec';
 
     let pushSubscription = null;
+    let countdownInterval = null;
 
-    // 註冊 Service Worker
     if ('serviceWorker' in navigator && 'PushManager' in window) {
       navigator.serviceWorker.register('sw.js').then(reg => {
         console.log('SW 註冊成功:', reg);
@@ -97,7 +77,6 @@
       return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
     }
 
-    // 1. 請求通知權限
     document.getElementById('enable-push').addEventListener('click', async () => {
       try {
         const reg = await navigator.serviceWorker.ready;
@@ -108,12 +87,11 @@
         pushSubscription = sub;
         alert('✅ 推播權限設定成功！');
       } catch (err) {
-        alert('❌ 訂閱失敗，請確保是從「主畫面 PWA」開啟且權限未被封鎖');
+        alert('❌ 訂閱失敗，請確保是從「主畫面 PWA」開啟');
         console.error(err);
       }
     });
 
-    // 2. 新增階段功能
     document.getElementById('add-stage').addEventListener('click', () => {
       const container = document.getElementById('stages-container');
       const div = document.createElement('div');
@@ -129,14 +107,11 @@
       updateStageNumbers();
     });
 
-    // 3. 刪除階段功能
     function removeStage(btn) {
-      const card = btn.closest('.stage-card');
-      card.remove();
+      btn.closest('.stage-card').remove();
       updateStageNumbers();
     }
 
-    // 重算階段編號（階段 1, 階段 2...）
     function updateStageNumbers() {
       const labels = document.querySelectorAll('.stage-label');
       labels.forEach((label, index) => {
@@ -144,7 +119,46 @@
       });
     }
 
-    // 4. 開始排程發送 (改用 FormData 避開 405 CORS 限制)
+    // 前端即時畫面倒數邏輯
+    function startLocalCountdown(stages) {
+      if (countdownInterval) clearInterval(countdownInterval);
+      
+      const timerBox = document.getElementById('timer-box');
+      const timerStatus = document.getElementById('timer-status');
+      const timerTime = document.getElementById('timer-time');
+      
+      timerBox.style.display = 'block';
+      
+      let currentStageIndex = 0;
+      let secondsLeft = Math.round(stages[0] * 60);
+
+      function updateDisplay() {
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        timerTime.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        timerStatus.textContent = `⏳ 階段 ${currentStageIndex + 1} 進行中 (共 ${stages.length} 階段)`;
+      }
+
+      updateDisplay();
+
+      countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft < 0) {
+          currentStageIndex++;
+          if (currentStageIndex < stages.length) {
+            secondsLeft = Math.round(stages[currentStageIndex] * 60);
+            updateDisplay();
+          } else {
+            clearInterval(countdownInterval);
+            timerStatus.textContent = '🎉 全部階段計時結束！';
+            timerTime.textContent = '00:00';
+          }
+        } else {
+          updateDisplay();
+        }
+      }, 1000);
+    }
+
     document.getElementById('start-btn').addEventListener('click', async () => {
       if (!pushSubscription) {
         alert('請先點擊「允許通知權限」！');
@@ -159,22 +173,17 @@
         return;
       }
 
-      const payload = {
-        subscription: pushSubscription,
-        stages: stages
-      };
-
+      const payload = { subscription: pushSubscription, stages: stages };
       const formData = new FormData();
       formData.append('data', JSON.stringify(payload));
 
       try {
-        await fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: formData
-        });
-
-        alert('🍉 計時已排定！時間到後端會發送推播與震動。');
+        await fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: formData });
+        
+        // 啟動前端畫面倒數動畫
+        startLocalCountdown(stages);
+        
+        alert('🍉 計時已排定！畫面上將顯示倒數，時間到後端也會跳出推播與震動。');
       } catch (err) {
         alert('❌ 排程失敗：' + err.message);
       }
