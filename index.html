@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多階段計時推播</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: -apple-system, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; line-height: 1.5; }
+    .stage-card { display: flex; align-items: center; justify-content: space-between; background: #f5f5f7; padding: 10px 15px; border-radius: 8px; margin-bottom: 10px; }
+    input[type="number"] { width: 70px; padding: 8px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; text-align: center; }
+    button { padding: 12px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: #007aff; color: white; width: 100%; margin-bottom: 15px; }
+    .btn-success { background: #34c759; color: white; width: 100%; font-size: 18px; }
+    .btn-add { background: #e5e5ea; color: #000; margin-bottom: 15px; }
+  </style>
+</head>
+<body>
+
+  <h2>⏱️ 多階段計時推播</h2>
+  <button id="enable-push" class="btn-primary">1. 允許通知權限</button>
+
+  <div id="stages-container">
+    <div class="stage-card">
+      <span>階段 1 (分鐘)</span>
+      <input type="number" class="stage-min" value="6">
+    </div>
+    <div class="stage-card">
+      <span>階段 2 (分鐘)</span>
+      <input type="number" class="stage-min" value="7">
+    </div>
+    <div class="stage-card">
+      <span>階段 3 (分鐘)</span>
+      <input type="number" class="stage-min" value="8">
+    </div>
+    <div class="stage-card">
+      <span>階段 4 (分鐘)</span>
+      <input type="number" class="stage-min" value="9">
+    </div>
+  </div>
+
+  <button id="add-stage" class="btn-add">+ 新增階段</button>
+  <button id="start-btn" class="btn-success">🚀 開始排程計時</button>
+
+  <script>
+    // 帶入你剛產生的 VAPID Public Key
+    const VAPID_PUBLIC_KEY = 'BC59SnWYq7iGTi7tb1ify3lvkY9ji742Dt9vCEsftJqyNhlPFPamGQtKtH8OSwGSsPLMzCGPvbiNChYkZAz7Z6Q';
+    
+    // ⚠️ 部署完 GAS 後，我們會把 GAS 的 Web App 網址填到這裡
+    const GAS_URL = 'YOUR_GAS_WEB_APP_URL';
+
+    let pushSubscription = null;
+
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        console.log('SW 註冊成功:', reg);
+      });
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+
+    document.getElementById('enable-push').addEventListener('click', async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        pushSubscription = sub;
+        alert('✅ 推播權限設定成功！');
+      } catch (err) {
+        alert('❌ 訂閱失敗，請確保是從「主畫面 PWA」開啟且使用 HTTPS');
+        console.error(err);
+      }
+    });
+
+    document.getElementById('add-stage').addEventListener('click', () => {
+      const container = document.getElementById('stages-container');
+      const count = container.children.length + 1;
+      const div = document.createElement('div');
+      div.className = 'stage-card';
+      div.innerHTML = `<span>階段 ${count} (分鐘)</span> <input type="number" class="stage-min" value="5">`;
+      container.appendChild(div);
+    });
+
+    document.getElementById('start-btn').addEventListener('click', async () => {
+      if (!pushSubscription) {
+        alert('請先點擊「允許通知權限」');
+        return;
+      }
+
+      const inputs = document.querySelectorAll('.stage-min');
+      const stages = Array.from(inputs).map(i => parseFloat(i.value)).filter(val => val > 0);
+
+      const payload = {
+        subscription: pushSubscription,
+        stages: stages
+      };
+
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      alert('🚀 計時已排定！即使關閉螢幕，時間到也會收到推播震動。');
+    });
+  </script>
+</body>
+</html>
