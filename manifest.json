@@ -1,14 +1,19 @@
 {
-  "name": "多階段計時推播",
-  "short_name": "階段計時",
+  "name": "西瓜多階段計時器",
+  "short_name": "西瓜計時",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4a90e2",
+  "background_color": "#fafafa",
+  "theme_color": "#ff4d6d",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192",
+      "src": "https://via.placeholder.com/192/ff4d6d/ffffff?text=🍉",
       "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512/ff4d6d/ffffff?text=🍉",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ]
